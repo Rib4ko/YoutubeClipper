@@ -1,0 +1,43 @@
+services:
+  # Backend service
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    volumes:
+      - ./backend:/app
+      - ytclips:/tmp/yt_clips/
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+
+  # Frontend service
+  frontend:
+    build: ./youtube-clipper
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./youtube-clipper:/app
+
+  # Redis service for Celery
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+
+  # Celery worker service
+  celery:
+    build: ./backend
+    command: celery -A app.celery worker --loglevel=info
+    depends_on:
+      - backend
+      - redis
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    volumes:
+      - ytclips:/tmp/yt_clips/
+volumes:
+  ytclips:
